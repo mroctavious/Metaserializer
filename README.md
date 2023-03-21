@@ -12,10 +12,10 @@ Metaserializer is a simple library which can be used to convert a set of primiti
 
 ## Installation
 
-Metaqueue requires [C++11](https://en.cppreference.com/w/cpp/11) std11+ to compile. Its just a header, import it and you are ready to go!
+Metaqueue requires [C++17](https://en.cppreference.com/w/cpp/17) std17+ to compile. Its just a header, import it and you are ready to go!
 
 ```sh
-g++ -lrt -std=c++11 source.cxx -o binary.bin
+g++ -lrt -std=c++17 source.cxx -o binary.bin
 ```
 ## Usage
 Let's create a complex struct to use as an example. 
