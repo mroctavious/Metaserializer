@@ -1,3 +1,5 @@
+#pragma once
+
 #include <type_traits>
 #include <string>
 #include <vector>
@@ -218,12 +220,12 @@ namespace MetaSerializer
         }
 
         /**
-         * @brief 
+         * @brief Method which will reconstruct the object from a serialization string.
          * 
-         * @param result 
-         * @param buffer 
-         * @param buffer_size 
-         * @return size_t 
+         * @param result Reference to the object to store the result.
+         * @param buffer Buffer where the serializations is stored.
+         * @param buffer_size Remaining bytes inside the buffer.
+         * @return size_t The size of the object serialized.
          */
         static inline size_t unserialize(std::string &result, unsigned char *buffer, size_t buffer_size){
             static const size_t serial_size = sizeof(serial_size_t);
@@ -241,21 +243,21 @@ namespace MetaSerializer
     };
 
     /**
-     * @brief 
+     * @brief This class will serialize/unserialize simple object, a simple object must be trivially_copyable.
      * 
-     * @tparam T 
+     * @tparam T Datatype to be serialized.
      */
     template <typename T>
     struct SimpleObject
     {
         /**
-         * @brief 
+         * @brief Serialize object into a string of bytes.
          * 
-         * @tparam _SrcT 
-         * @tparam _DestT 
-         * @param src 
-         * @param dest 
-         * @return size_t 
+         * @tparam _SrcT Source type.
+         * @tparam _DestT Destination type.
+         * @param src The object to be serialized.
+         * @param dest Buffer where the bytes are going to be stored.
+         * @return size_t Number of bytes written.
          */
         template <typename _SrcT, typename _DestT>
         static inline size_t serialize(_SrcT &src, _DestT dest)
@@ -265,11 +267,11 @@ namespace MetaSerializer
         }
 
         /**
-         * @brief 
+         * @brief Unserialize string and reconstruct the object from raw bytes.
          * 
-         * @param result 
-         * @param data 
-         * @return size_t 
+         * @param result Reference to the object where the data will be stored.
+         * @param buffer Buffer where the serialized data is stored.
+         * @return size_t Number of bytes read from byffer.
          */
         static inline size_t unserialize(T& result, unsigned char *buffer){
             std::memcpy(&result, buffer, sizeof(T));
@@ -278,33 +280,39 @@ namespace MetaSerializer
     };
 
     /**
-     * @brief 
+     * @brief Class which will apply the serialization methods.
      * 
-     * @tparam T 
-     * @tparam is_array 
-     * @tparam is_trivial 
+     * @tparam T Datatype to be serialized.
+     * @tparam is_array Boolean which indicates if its an static array.
+     * @tparam is_trivial Boolean which indicated if the class to be serialized.
      */
     template <typename T, bool is_array, bool is_trivial>
     struct TypeSerializerImpl
     {
+        /**
+         * @brief Default method to use when using the TypeSerializedImpl, if the datatype does not meet the requeriment, it will enter to this method and it wont compile for safety.
+         * 
+         * @return int Number of bytes written.
+         */
         static int apply() = delete;
     };
 
+
     /**
-     * @brief 
+     * @brief This metafunction will serialize a static array of the datatype given. Is Array and its a simple object.
      * 
-     * @tparam T 
-     * @tparam N 
+     * @tparam T Datatype to be serialized, this class is for static array of T type.
+     * @tparam N Number of elements in the array.
      */
     template <typename T, size_t N>
     struct TypeSerializerImpl<T[N], true, true>
     {
         /**
-         * @brief 
+         * @brief Apply serialization to the datatype.
          * 
-         * @param data 
-         * @param buffer 
-         * @return size_t 
+         * @param data Reference to the object to be serialized.
+         * @param buffer Pointer to the serialize data buffer.
+         * @return size_t Number of bytes written.
          */
         static size_t apply(T data[N], unsigned char *buffer)
         {
@@ -319,22 +327,22 @@ namespace MetaSerializer
     };
 
     /**
-     * @brief 
+     * @brief This metafunction will serialize a static array of the datatype given. Is Array and its a complex object.
      * 
-     * @tparam T 
-     * @tparam N 
+     * @tparam T Datatype to be serialized, this class is for static array of T type.
+     * @tparam N Number of elements in the array.
      */
     template <typename T, size_t N>
     struct TypeSerializerImpl<T[N], true, false>
     {
-        static const bool has_serialize = HasSerializeMethod<T>::value;
+        static const bool has_serialize = HasSerializeMethod<T>::value; //< Check if the class the 'serialize' method.
 
         /**
-         * @brief 
+         * @brief Apply serialization to the datatype.
          * 
-         * @param data 
-         * @param buffer 
-         * @return size_t 
+         * @param data Reference to the object to be serialized.
+         * @param buffer Pointer to the serialize data buffer.
+         * @return size_t Number of bytes written.
          */
         static size_t apply(T data[N], unsigned char *buffer)
         {
@@ -352,19 +360,19 @@ namespace MetaSerializer
     };
 
     /**
-     * @brief 
+     * @brief This metafunction will serialize an object of the datatype given. It is not an array and its a simple object.
      * 
-     * @tparam T 
+     * @tparam T Datatype to be serialized.
      */
     template <typename T>
     struct TypeSerializerImpl<T, false, true>
     {
         /**
-         * @brief 
+         * @brief Apply serialization to the datatype.
          * 
-         * @param data 
-         * @param buffer 
-         * @return size_t 
+         * @param data Reference to the object to be serialized.
+         * @param buffer Pointer to the serialize data buffer.
+         * @return size_t Number of bytes written.
          */
         static size_t apply(T &data, unsigned char *buffer)
         {
@@ -373,20 +381,21 @@ namespace MetaSerializer
     };
 
     /**
-     * @brief 
+     * @brief This metafunction will serialize an object of the datatype given. It is not an array and its a complex object.
      * 
-     * @tparam T 
+     * @tparam T Datatype to be serialized.
      */
     template <typename T>
     struct TypeSerializerImpl<T, false, false>
     {
-        static const bool has_serialize = HasSerializeMethod<T>::value;
+        static const bool has_serialize = HasSerializeMethod<T>::value; //< Check if the class the 'serialize' method.
+
         /**
-         * @brief 
+         * @brief Apply serialization to the datatype.
          * 
-         * @param data 
-         * @param buffer 
-         * @return size_t 
+         * @param data Reference to the object to be serialized.
+         * @param buffer Pointer to the serialize data buffer.
+         * @return size_t Number of bytes written.
          */
         static size_t apply(T &data, unsigned char *buffer)
         {
@@ -395,27 +404,40 @@ namespace MetaSerializer
     };
 
     /**
-     * @brief 
+     * @brief This metafunction will unserialize a set of bytes, reconstructing the object from raw data.
      * 
-     * @tparam T 
-     * @tparam is_array 
-     * @tparam is_trivial 
+     * @tparam T Datatype to be unserialized.
+     * @tparam is_array Boolean which indicates if its an static array.
+     * @tparam is_trivial Boolean which indicated if the class to be serialized.
      */
     template <typename T, bool is_array, bool is_trivial>
     struct TypeUnserializerImpl
     {
+        /**
+         * @brief Default method to use when using the TypeUnserializerImpl, if the datatype does not meet the requeriment, it will enter to this method and it wont compile for safety.
+         * 
+         * @return int Number of bytes read from buffer.
+         */
         static int apply() = delete;
     };
 
     /**
-     * @brief 
+     * @brief This metafunction will unserialize a set of bytes, reconstructing the object from raw data. It is an static array and a simple object.
      * 
-     * @tparam T 
-     * @tparam N 
+     * @tparam T Datatype to be unserialized.
+     * @tparam N Number of elements in the array.
      */
     template <typename T, size_t N>
     struct TypeUnserializerImpl<T[N], true, true>
     {
+        /**
+         * @brief Apply unserialize process to the bytes inside the buffer and convert it to the datatype given.
+         * 
+         * @param result Reference to the object where the data will be stored.
+         * @param buffer Pointer to the buffer which contains the raw bytes from the serialize process.
+         * @param buffer_size Remaining bytes in the buffer.
+         * @return size_t Number of bytes read from the buffer.
+         */
         static size_t apply(T result[N], unsigned char *buffer, size_t buffer_size){
             if( sizeof(serial_size_t) > buffer_size ){
                 std::runtime_error("Error while unserializing simple type array, buffer bytes remaining are too low to continue.");
@@ -434,16 +456,24 @@ namespace MetaSerializer
     };
 
     /**
-     * @brief 
+     * @brief This metafunction will unserialize a set of bytes, reconstructing the object from raw data. It is an static array and a complex object.
      * 
-     * @tparam T 
-     * @tparam N 
+     * @tparam T Datatype to be unserialized.
+     * @tparam N Number of elements in the array.
      */
     template <typename T, size_t N>
     struct TypeUnserializerImpl<T[N], true, false>
     {
-        static const bool has_serialize = HasUnserializeMethod<T>::value;
+        static const bool has_serialize = HasUnserializeMethod<T>::value; //< Check if the class to be unserialized has the unserialize method.
 
+        /**
+         * @brief Apply unserialize process to the bytes inside the buffer and convert it to the datatype given.
+         * 
+         * @param result Reference to the object where the data will be stored.
+         * @param buffer Pointer to the buffer which contains the raw bytes from the serialize process.
+         * @param buffer_size size_t Remaining bytes in the buffer.
+         * @return size_t Number of bytes written.
+         */
         static size_t apply(T result[N], unsigned char *buffer, size_t buffer_size){
             if( sizeof(serial_size_t) > buffer_size ){
                 std::runtime_error("Error while unserializing complex type array, buffer bytes remaining are too low to continue.");
@@ -464,6 +494,11 @@ namespace MetaSerializer
         }
     };
 
+    /**
+     * @brief This metafunction will unserialize a set of bytes, reconstructing the object from raw data, its a complex object.
+     * 
+     * @tparam T Datatype to be unserialized.
+     */
     template <typename T>
     struct TypeUnserializerImpl<T, false, false>
     {
@@ -474,9 +509,22 @@ namespace MetaSerializer
         }
     };
 
+    /**
+     * @brief This metafunction will unserialize a set of bytes, reconstructing the object from raw data, its a simple object.
+     * 
+     * @tparam T Datatype to be unserialized.
+     */
     template <typename T>
     struct TypeUnserializerImpl<T, false, true>
     {
+        /**
+         * @brief 
+         * 
+         * @param result 
+         * @param buffer 
+         * @param buffer_size 
+         * @return size_t 
+         */
         static size_t apply(T& result, unsigned char *buffer, size_t buffer_size){
             if(sizeof(T) > buffer_size) throw std::runtime_error("Error while unserializing simple type, buffer bytes remaining are too low to continue.");
             return SimpleObject<T>::unserialize(result, buffer);
@@ -490,12 +538,12 @@ namespace MetaSerializer
     struct TypeSerializer
     {
         /**
-         * @brief 
+         * @brief This metafunction will define if given object is an array and if its trivially copyable, then it will call the corresponding metafunctions to apply serialization. 
          * 
-         * @tparam T 
-         * @param data 
-         * @param buffer 
-         * @return size_t 
+         * @tparam T Datatype to serialize.
+         * @param data Data reference to be serialized.
+         * @param buffer Pointer to the buffer to store the result.
+         * @return size_t Number of bytes written.
          */
         template <typename T>
         static inline size_t apply(T &data, unsigned char *buffer)
@@ -508,15 +556,20 @@ namespace MetaSerializer
     };
 
 
+    /**
+     * @brief Class which apply unserialize raw data and reconstruct the object.
+     * 
+     */
     struct TypeUnserializer
     {
         /**
-         * @brief 
+         * @brief This metafunction will define if given object is an array and if its trivially copyable, then it will call the corresponding metafunctions to apply unserialization. 
          * 
-         * @tparam T 
-         * @param data 
-         * @param buffer 
-         * @return size_t 
+         * @tparam T Datatype to serialize.
+         * @param data Data reference where the result will be stored.
+         * @param buffer Pointer to the buffer where the raw bytes are stored.
+         * @param bytes_remaining Number of bytes remaining in the buffer.
+         * @return size_t Number of bytes read from the buffer.
          */
         template <typename T>
         static inline size_t apply(T &data, unsigned char *buffer, size_t bytes_remaining)
@@ -530,20 +583,20 @@ namespace MetaSerializer
 
 
     /**
-     * @brief 
+     * @brief Class which apply the serialize algorithm to the datatypes given.
      * 
-     * @tparam BufferSize 
+     * @tparam BufferSize Max buffer size.
      */
     template <int BufferSize = 16384>
     struct Serialize
     {
         /**
-         * @brief 
+         * @brief Base case of the serialization.
          * 
-         * @tparam T 
-         * @param buff_ptr 
-         * @param data 
-         * @return unsigned char* 
+         * @tparam T Datatype to serialize.
+         * @param buff_ptr Pointer to the buffer.
+         * @param data Data to be serialized.
+         * @return unsigned char* Pointer where the writing of byted ended.
          */
         template <typename T>
         static inline unsigned char *exec_impl(unsigned char **buff_ptr, T& data)
@@ -553,14 +606,14 @@ namespace MetaSerializer
         }
 
         /**
-         * @brief 
+         * @brief Recursive case of the serialization algorithm.
          * 
-         * @tparam T 
-         * @tparam TArgs 
-         * @param buff_ptr 
-         * @param data 
-         * @param Args 
-         * @return unsigned char* 
+         * @tparam T Datatype to serialize.
+         * @tparam TArgs Rest of the datatypes to be serialized.
+         * @param buff_ptr Pointer to the buffer.
+         * @param data Data to be serialized.
+         * @param Args Rest of the objects to be serialized.
+         * @return unsigned char* Pointer where the writing of byted ended.
          */
         template <typename T, typename... TArgs>
         static inline unsigned char *exec_impl(unsigned char **buff_ptr, T& data, TArgs&... Args)
@@ -570,14 +623,14 @@ namespace MetaSerializer
         }
 
         /**
-         * @brief Set the hash object
+         * @brief Save in the buffer the hash created from all the datatypes given.
          * 
-         * @tparam T 
-         * @tparam TArgs 
-         * @param buffer 
-         * @param data 
-         * @param Args 
-         * @return size_t 
+         * @tparam T First datatype to be serialized.
+         * @tparam TArgs Rest of the datatypes to be serilized.
+         * @param buffer Pointer to the buffer to store the data.
+         * @param data Object to be serialized.
+         * @param Args Rest of the object to be serialized.
+         * @return size_t Number of bytes written in the buffer.
          */
         template <typename T, typename... TArgs>
         static inline size_t set_hash(unsigned char *buffer, T& data, TArgs&... Args){
@@ -587,13 +640,13 @@ namespace MetaSerializer
         }
 
         /**
-         * @brief 
+         * @brief This method will start the serialization algorithm, it will create a hash from all the datatypes given and will insert it at the beggining of the serial result. 
          * 
-         * @tparam T 
-         * @tparam TArgs 
-         * @param data 
-         * @param args 
-         * @return std::string 
+         * @tparam T First datatype to be serialized.
+         * @tparam TArgs Rest of the datatypes to be serilized.
+         * @param data Object where the bytes are stored.
+         * @param args Rest of the object to be serialized.
+         * @return std::string Serialized result in a std::string which contains a set of ordered bytes.
          */
         template <typename T, typename... TArgs>
         static inline std::string apply(T& data, TArgs&... args)
@@ -606,13 +659,23 @@ namespace MetaSerializer
         }
     };
 
-/************************************************************/
-
+    /**
+     * @brief Class which apply the serialize algorithm to the datatypes given.
+     * 
+     * @tparam BufferSize BufferSize Max buffer size.
+     */
     template <int BufferSize = 16384>
     struct Unserialize
     {
-        static const int hash_size = sizeof(size_t);
+        static const int hash_size = sizeof(size_t); //< Number of bytes which indicates the size of the hash.
 
+        /**
+         * @brief Get the hash from bytes object.
+         * 
+         * @tparam T Datatype of the object to get hash from raw bytes.
+         * @param data Object which contains the raw bytes.
+         * @return size_t Number of bytes read.
+         */
         template<typename T>
         static inline size_t get_hash_from_bytes(T& data){
             size_t hash;
@@ -623,6 +686,16 @@ namespace MetaSerializer
             return hash;
         }
 
+        /**
+         * @brief Check if the hash included in the serialization data correspond to the hash created with all the datatypes given to unserialize.
+         * 
+         * @tparam T Datatype of the object which contains the raw bytes.
+         * @tparam TArgs Rest of the datatypes to be unserilized.
+         * @param raw_data Object which contains the raw bytes.
+         * @param args All the objects to unserialize.
+         * @return true Hash value correspond to the hash included in the serialized data.
+         * @return false Hash values is different.
+         */
         template<typename T, typename... TArgs>
         static inline bool check_type(T& raw_data,  TArgs... args){
             auto msg_hash = get_hash_from_bytes(raw_data);
@@ -634,6 +707,14 @@ namespace MetaSerializer
             }
         }
 
+        /**
+         * @brief Base case of the unserialization algorithm.
+         * 
+         * @tparam T First datatype to be serialized.
+         * @param buff_ptr Pointer of the data buffer where the raw bytes are located.
+         * @param bytes_in_buffer Number of bytes remaining in the buffer.
+         * @param result_ref Referece to the object where the result will be stored.
+         */
         template <typename T>
         static inline void exec_impl(unsigned char *buff_ptr, size_t bytes_in_buffer, T& result_ref)
         {
@@ -641,6 +722,16 @@ namespace MetaSerializer
             return;
         }
 
+        /**
+         * @brief Recursive case of the unserialization algorithm.
+         * 
+         * @tparam T First datatype to be serialized.
+         * @tparam TArgs Rest of the datatypes to be unserilized
+         * @param buff_ptr Pointer of the data buffer where the raw bytes are located.
+         * @param bytes_in_buffer Number of bytes remaining in the buffer.
+         * @param result_ref Referece to the object where the result will be stored.
+         * @param Args Rest of the object to be unserialized.
+         */
         template <typename T, typename... TArgs>
         static inline void exec_impl(unsigned char *buff_ptr, size_t bytes_in_buffer, T& result_ref, TArgs&... Args)
         {
@@ -648,6 +739,14 @@ namespace MetaSerializer
             return exec_impl(buff_ptr+bytes_read, bytes_in_buffer-bytes_read, Args...);
         }
 
+        /**
+         * @brief This method will copy the bytes from the object to a raw unsigned char array.
+         * 
+         * @tparam T Datatype of the object which contains the raw bytes.
+         * @param data Object which contains the raw bytes.
+         * @param buffer Pointer to the buffer where the data will be copied.
+         * @return size_t Number of bytes written.
+         */
         template<typename T>
         static size_t copy_to_buffer(T& data, unsigned char* buffer){
             std::memset(buffer, 0, BufferSize);
@@ -656,6 +755,14 @@ namespace MetaSerializer
 
         }
 
+        /**
+         * @brief Start the unserialization algorithm.
+         * 
+         * @tparam T Datatype of the object which contains the raw bytes.
+         * @tparam TArgs Rest of the datatypes to be unserilized
+         * @param data Object which contains the raw bytes.
+         * @param args All the objects to unserialize.
+         */
         template <typename T, typename... TArgs>
         static inline void apply(T& data, TArgs&... args)
         {
@@ -668,7 +775,7 @@ namespace MetaSerializer
             size_t bytes_in_buffer=copy_to_buffer(data, buffer);
             
             if( ! check_type(data, args...) ){
-                throw std::runtime_error("Types hash is different from the serial data hash.");
+                throw std::runtime_error("Types hash are different from the serial data hash.");
             }
             
             return exec_impl(buffer+hash_size, bytes_in_buffer-hash_size, args...);
