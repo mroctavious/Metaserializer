@@ -18,7 +18,7 @@
  * a class object or a set of values with
  * different datatypes.
  */
-namespace MetaSerializer
+namespace Metaserializer
 {
     /**
      * @brief Data type where the size of the serial will be indicated. This will be used all times inside the serialization bytes string.
@@ -115,7 +115,7 @@ namespace MetaSerializer
     template <typename T>
     struct HasSerializeMethod
     {
-        template <typename U, size_t (U::*)() const> struct SFINAE{};
+        template <typename U, std::string (U::*)()> struct SFINAE{};
         template <typename U>
         static char SubstitutionTry(SFINAE<U, &U::serialize> *);
         template <typename U>
@@ -131,7 +131,7 @@ namespace MetaSerializer
     template <typename T>
     struct HasUnserializeMethod
     {
-        template <typename U, size_t (U::*)() const> struct SFINAE{};
+        template <typename U, size_t (U::*)(std::string&)> struct SFINAE{};
         template <typename U>
         static char SubstitutionTry(SFINAE<U, &U::unserialize> *);
         template <typename U>
@@ -161,7 +161,7 @@ namespace MetaSerializer
             int index = 0;
             for (auto it = serialized_obj.begin(); it != serialized_obj.end(); ++it)
             {
-                buffer[index] = reinterpret_cast<unsigned char>(*it);
+                buffer[index] = static_cast<unsigned char>(*it);
                 ++index;
             }
             return index;
@@ -177,9 +177,7 @@ namespace MetaSerializer
          */
         static size_t unserialize(T &obj, unsigned char *buffer, size_t size){
             std::string serialized_string((char*) buffer, size);
-            T new_obj = T::unserialize(serialized_string);
-            obj = new_obj;
-            return new_obj.size();
+            return obj.unserialize(serialized_string);
         }
     };
 
@@ -634,7 +632,7 @@ namespace MetaSerializer
          */
         template <typename T, typename... TArgs>
         static inline size_t set_hash(unsigned char *buffer, T& data, TArgs&... Args){
-            size_t hash = MetaSerializer::TypeHasher::apply(data, Args...);
+            size_t hash = Metaserializer::TypeHasher::apply(data, Args...);
             std::memcpy(buffer, &hash, sizeof(size_t));
             return sizeof(size_t);
         }
@@ -699,7 +697,7 @@ namespace MetaSerializer
         template<typename T, typename... TArgs>
         static inline bool check_type(T& raw_data,  TArgs... args){
             auto msg_hash = get_hash_from_bytes(raw_data);
-            auto struct_hash = MetaSerializer::TypeHasher::apply(args...);
+            auto struct_hash = Metaserializer::TypeHasher::apply(args...);
             if ( msg_hash == struct_hash ){
                 return true;
             }else{
@@ -716,10 +714,10 @@ namespace MetaSerializer
          * @param result_ref Referece to the object where the result will be stored.
          */
         template <typename T>
-        static inline void exec_impl(unsigned char *buff_ptr, size_t bytes_in_buffer, T& result_ref)
+        static inline size_t exec_impl(unsigned char *buff_ptr, size_t bytes_in_buffer, T& result_ref)
         {
-            auto bytes_read = MetaSerializer::TypeUnserializer::apply(result_ref, buff_ptr, bytes_in_buffer);
-            return;
+            auto bytes_read = Metaserializer::TypeUnserializer::apply(result_ref, buff_ptr, bytes_in_buffer);
+            return bytes_read;
         }
 
         /**
@@ -733,10 +731,10 @@ namespace MetaSerializer
          * @param Args Rest of the object to be unserialized.
          */
         template <typename T, typename... TArgs>
-        static inline void exec_impl(unsigned char *buff_ptr, size_t bytes_in_buffer, T& result_ref, TArgs&... Args)
+        static inline size_t exec_impl(unsigned char *buff_ptr, size_t bytes_in_buffer, T& result_ref, TArgs&... Args)
         {
-            auto bytes_read = MetaSerializer::TypeUnserializer::apply(result_ref, buff_ptr, bytes_in_buffer);
-            return exec_impl(buff_ptr+bytes_read, bytes_in_buffer-bytes_read, Args...);
+            auto bytes_read = Metaserializer::TypeUnserializer::apply(result_ref, buff_ptr, bytes_in_buffer);
+            return bytes_read + exec_impl(buff_ptr+bytes_read, bytes_in_buffer-bytes_read, Args...);
         }
 
         /**
@@ -764,7 +762,7 @@ namespace MetaSerializer
          * @param args All the objects to unserialize.
          */
         template <typename T, typename... TArgs>
-        static inline void apply(T& data, TArgs&... args)
+        static inline size_t apply(T& data, TArgs&... args)
         {
             static unsigned char buffer[BufferSize] = {0};
 
@@ -778,7 +776,7 @@ namespace MetaSerializer
                 throw std::runtime_error("Types hash are different from the serial data hash.");
             }
             
-            return exec_impl(buffer+hash_size, bytes_in_buffer-hash_size, args...);
+            return hash_size + exec_impl(buffer+hash_size, bytes_in_buffer-hash_size, args...);
         }
     };
 
